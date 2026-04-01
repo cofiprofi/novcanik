@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Novčanik">
+<meta name="theme-color" content="#0f0f13">
+<title>Novčanik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f0f13;--surface:#18181f;--surface2:#21212c;--border:#2a2a38;
+  --gold:#c9a84c;--gold-light:#e8c97a;--gold-dim:rgba(201,168,76,.13);
+  --text:#f0ede8;--text-muted:#7a7890;--text-soft:#b0adca;
+  --red:#e05c6a;--red-dim:rgba(224,92,106,.13);
+  --green:#5cb88a;--green-dim:rgba(92,184,138,.13);
+  --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --font:'DM Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overscroll-behavior:none;-webkit-font-smoothing:antialiased}
+.app{max-width:430px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+
+.header{padding:calc(var(--safe-top) + 14px) 20px 0;position:sticky;top:0;z-index:100;background:var(--bg)}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.logo{font-family:'DM Serif Display',serif;font-size:21px;color:var(--gold)}
+.month-nav{display:flex;align-items:center;gap:12px}
+.month-nav button{background:var(--surface2);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:10px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.month-nav button:active{background:var(--gold-dim);border-color:var(--gold)}
+.month-label{font-size:14px;font-weight:500;min-width:118px;text-align:center}
+
+.bal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.bal-main{grid-column:1/-1;background:linear-gradient(135deg,#1d1b2e 0%,#1a1927 100%);border:1px solid var(--border);border-radius:18px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;position:relative;overflow:hidden}
+.bal-main::after{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:radial-gradient(circle,rgba(201,168,76,.14) 0%,transparent 70%);pointer-events:none}
+.bal-small{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px}
+.bal-small.g{background:var(--green-dim);border-color:rgba(92,184,138,.25)}
+.bal-small.r{background:var(--red-dim);border-color:rgba(224,92,106,.25)}
+.bl{font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:var(--text-muted);margin-bottom:5px}
+.bl.gc{color:var(--green)}.bl.rc{color:var(--red)}
+.bv{font-family:'DM Serif Display',serif;font-size:20px;line-height:1}
+.bv.big{font-family:'DM Serif Display',serif;font-size:28px;color:var(--gold-light)}
+.bv.g{color:var(--green)}.bv.r{color:var(--red)}
+.bsub{font-size:10px;color:var(--text-muted);margin-top:4px}
+
+.tabs{display:flex;gap:6px;padding-bottom:12px}
+.tab{flex:1;padding:9px;background:var(--surface);border:1px solid var(--border);border-radius:12px;color:var(--text-muted);font-size:12px;font-weight:500;cursor:pointer;text-align:center;transition:all .2s;font-family:var(--font)}
+.tab.active{background:var(--gold-dim);border-color:var(--gold);color:var(--gold)}
+
+.content{flex:1;padding:0 20px;padding-bottom:calc(var(--safe-bottom) + 96px)}
+.sec{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin:16px 0 8px}
+
+.cat-row{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 14px;display:flex;align-items:center;gap:10px;margin-bottom:7px;animation:su .3s ease both}
+@keyframes su{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.ci{width:38px;height:38px;background:var(--surface2);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:19px}
+.ci-dot{width:38px;height:38px;border-radius:11px;flex-shrink:0}
+.ci-info{flex:1;min-width:0}
+.cn{font-size:13px;font-weight:500;color:var(--text);margin-bottom:4px}
+.cb-wrap{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.cb{height:100%;border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.ca{font-size:14px;font-weight:600;text-align:right;flex-shrink:0}
+.cc{font-size:11px;color:var(--text-muted);text-align:right}
+
+.tx-row{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:13px 14px;display:flex;align-items:center;gap:10px;margin-bottom:7px;animation:su .3s ease both}
+.tx-info{flex:1;min-width:0}
+.tx-n{font-size:13px;font-weight:500}
+.tx-m{font-size:11px;color:var(--text-muted);margin-top:2px}
+.tx-del{background:none;border:none;color:var(--text-muted);font-size:15px;cursor:pointer;padding:4px;opacity:.5;flex-shrink:0}
+.tx-del:active{opacity:1;color:var(--red)}
+
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:12px;margin-top:10px}
+.chart-title{font-size:12px;font-weight:500;color:var(--text-soft);margin-bottom:14px}
+
+.fab{position:fixed;bottom:calc(var(--safe-bottom) + 18px);left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:390px;background:var(--gold);color:#0f0f13;border:none;border-radius:16px;padding:15px;font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 28px rgba(201,168,76,.3);z-index:200;transition:all .2s}
+.fab:active{transform:translateX(-50%) scale(.97)}
+
+.mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:300;align-items:flex-end;justify-content:center}
+.mo.open{display:flex}
+.md{background:var(--surface);border:1px solid var(--border);border-radius:28px 28px 0 0;padding:22px 20px calc(var(--safe-bottom) + 22px);width:100%;max-width:430px;animation:sm .35s cubic-bezier(.32,.72,0,1);max-height:92vh;overflow-y:auto}
+@keyframes sm{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mh{width:36px;height:4px;background:var(--border);border-radius:2px;margin:-6px auto 18px}
+.mt{font-family:'DM Serif Display',serif;font-size:21px;margin-bottom:16px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);margin-bottom:7px}
+.field input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px 14px;color:var(--text);font-size:16px;font-family:var(--font);outline:none;transition:border-color .2s}
+.field input:focus{border-color:var(--gold)}
+.field input.gf:focus{border-color:var(--green)}
+
+.tt{display:flex;background:var(--surface2);border-radius:12px;padding:4px;gap:4px;margin-bottom:14px}
+.ttb{flex:1;padding:9px;border:none;border-radius:9px;font-size:13px;font-weight:500;font-family:var(--font);cursor:pointer;transition:all .2s;background:none;color:var(--text-muted)}
+.ttb.ae{background:var(--red-dim);color:var(--red)}
+.ttb.ai{background:var(--green-dim);color:var(--green)}
+
+.cg{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+.cb-btn{background:var(--surface2);border:1.5px solid var(--border);border-radius:11px;padding:10px 12px;display:flex;align-items:center;gap:8px;color:var(--text-soft);font-size:12px;font-family:var(--font);cursor:pointer;transition:all .15s;text-align:left;width:100%}
+.cb-btn.se{background:var(--red-dim);border-color:rgba(224,92,106,.5);color:var(--red)}
+.cb-btn.si{background:var(--green-dim);border-color:rgba(92,184,138,.5);color:var(--green)}
+.cb-btn.add-cat{border-style:dashed;color:var(--text-muted);justify-content:center;font-size:13px}
+.cb-btn.add-cat:active{border-color:var(--gold);color:var(--gold)}
+.cdot{width:20px;height:20px;border-radius:6px;flex-shrink:0}
+
+.ms{width:100%;margin-top:14px;border:none;border-radius:13px;padding:15px;font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;transition:all .2s}
+.ms.e{background:var(--gold);color:#0f0f13}
+.ms.i{background:var(--green);color:#0f0f13}
+.ms.danger{background:var(--red);color:#fff}
+.mc{width:100%;margin-top:8px;background:none;color:var(--text-muted);border:none;padding:10px;font-size:14px;font-family:var(--font);cursor:pointer}
+
+.color-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:4px}
+.color-swatch{width:100%;aspect-ratio:1;border-radius:10px;border:2.5px solid transparent;cursor:pointer;transition:transform .15s,border-color .15s}
+.color-swatch.picked{border-color:#fff;transform:scale(1.12)}
+
+.mcat-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--border)}
+.mcat-row:last-child{border-bottom:none}
+.mcat-dot{width:32px;height:32px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px}
+.mcat-name{flex:1;font-size:13px;font-weight:500}
+.mcat-del{background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;opacity:.5}
+.mcat-del:active{opacity:1;color:var(--red)}
+.mcat-badge{font-size:10px;background:var(--surface2);color:var(--text-muted);padding:2px 7px;border-radius:6px}
+
+.empty{text-align:center;padding:44px 0;color:var(--text-muted)}
+.empty-icon{font-size:38px;margin-bottom:10px}
+.empty p{font-size:13px;line-height:1.7}
+.manage-link{font-size:11px;color:var(--text-muted);text-align:center;margin-top:10px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.manage-link:active{color:var(--gold)}
+
+/* legend dots for chart */
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:14px}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-soft)}
+.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">💰 Novčanik</div>
+      <div class="month-nav">
+        <button onclick="changeMonth(-1)">‹</button>
+        <div class="month-label" id="monthLabel"></div>
+        <button onclick="changeMonth(1)">›</button>
+      </div>
+    </div>
+    <div class="bal-grid" id="balGrid"></div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('pregled')">📊 Pregled</button>
+      <button class="tab" onclick="switchTab('grafikon')">📈 Grafikon</button>
+      <button class="tab" onclick="switchTab('stavke')">🧾 Stavke</button>
+    </div>
+  </div>
+  <div class="content">
+    <div id="tab-pregled"></div>
+    <div id="tab-grafikon" style="display:none">
+      <div class="chart-wrap">
+        <div class="chart-title">Raspodela troškova ovog meseca</div>
+        <canvas id="pieChart" height="240"></canvas>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-title">Prihodi vs Troškovi — poslednjih 6 meseci</div>
+        <canvas id="barChart" height="200"></canvas>
+      </div>
+    </div>
+    <div id="tab-stavke" style="display:none"></div>
+  </div>
+</div>
+
+<button class="fab" onclick="openModal()">+ Dodaj stavku</button>
+
+<!-- ENTRY MODAL -->
+<div class="mo" id="entryModal" onclick="coo(event,'entryModal')">
+  <div class="md">
+    <div class="mh"></div>
+    <div class="mt">Nova stavka</div>
+    <div class="tt">
+      <button class="ttb ae" id="tt-e" onclick="setType('expense')">💸 Trošak</button>
+      <button class="ttb"    id="tt-i" onclick="setType('income')">💵 Prihod</button>
+    </div>
+    <div class="field">
+      <label>Iznos (RSD)</label>
+      <input type="number" id="iAmt" placeholder="npr. 25.000" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label>Opis (opciono)</label>
+      <input type="text" id="iDesc" placeholder="npr. Lidl...">
+    </div>
+    <div class="field">
+      <label>Kategorija</label>
+      <div class="cg" id="catGrid"></div>
+      <div class="manage-link" onclick="openManageCats()">⚙️ Upravljaj kategorijama</div>
+    </div>
+    <button class="ms e" id="saveBtn" onclick="saveEntry()">Sačuvaj trošak</button>
+    <button class="mc" onclick="cm('entryModal')">Otkaži</button>
+  </div>
+</div>
+
+<!-- ADD CATEGORY MODAL -->
+<div class="mo" id="addCatModal" onclick="coo(event,'addCatModal')">
+  <div class="md">
+    <div class="mh"></div>
+    <div class="mt">Nova kategorija</div>
+    <div class="tt">
+      <button class="ttb ae" id="nct-e" onclick="setNewCatType('expense')">💸 Trošak</button>
+      <button class="ttb"    id="nct-i" onclick="setNewCatType('income')">💵 Prihod</button>
+    </div>
+    <div class="field">
+      <label>Naziv kategorije</label>
+      <input type="text" id="newCatName" placeholder="npr. Sport, Hobiji...">
+    </div>
+    <div class="field">
+      <label>Boja</label>
+      <div class="color-grid" id="colorGrid"></div>
+    </div>
+    <button class="ms e" id="saveCatBtn" onclick="saveNewCat()">Dodaj kategoriju</button>
+    <button class="mc" onclick="backToEntry()">← Nazad</button>
+  </div>
+</div>
+
+<!-- MANAGE CATS MODAL -->
+<div class="mo" id="manageCatsModal" onclick="coo(event,'manageCatsModal')">
+  <div class="md">
+    <div class="mh"></div>
+    <div class="mt">Kategorije</div>
+    <div class="tt">
+      <button class="ttb ae" id="mgt-e" onclick="setManageType('expense')">💸 Troškovi</button>
+      <button class="ttb"    id="mgt-i" onclick="setManageType('income')">💵 Prihodi</button>
+    </div>
+    <div id="manageCatsList"></div>
+    <button class="ms e" id="addNewFromManage" style="margin-top:16px" onclick="openAddCatFromManage()">+ Dodaj novu kategoriju</button>
+    <button class="mc" onclick="cm('manageCatsModal')">Zatvori</button>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE ENTRY -->
+<div class="mo" id="confirmModal">
+  <div class="md" style="padding-bottom:calc(var(--safe-bottom) + 22px)">
+    <div class="mh"></div>
+    <div style="text-align:center;padding:8px 0 20px">
+      <div style="font-size:36px;margin-bottom:12px">🗑️</div>
+      <div style="font-size:20px;font-weight:700;margin-bottom:8px">Obriši stavku?</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.6" id="confirmText"></div>
+    </div>
+    <button class="ms danger" style="margin-top:0" onclick="confirmDelete()">Da, obriši</button>
+    <button class="mc" onclick="cm('confirmModal')">Otkaži</button>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE CAT -->
+<div class="mo" id="confirmCatModal">
+  <div class="md" style="padding-bottom:calc(var(--safe-bottom) + 22px)">
+    <div class="mh"></div>
+    <div style="text-align:center;padding:8px 0 20px">
+      <div style="font-size:36px;margin-bottom:12px">⚠️</div>
+      <div style="font-size:20px;font-weight:700;margin-bottom:8px">Obriši kategoriju?</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.6" id="confirmCatText"></div>
+    </div>
+    <button class="ms danger" style="margin-top:0" onclick="confirmDeleteCat()">Da, obriši</button>
+    <button class="mc" onclick="cm('confirmCatModal')">Otkaži</button>
+  </div>
+</div>
+
+<!-- BALANCE MODAL -->
+<div class="mo" id="balModal" onclick="coo(event,'balModal')">
+  <div class="md">
+    <div class="mh"></div>
+    <div class="mt">Početno stanje računa</div>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:18px;line-height:1.7">Unesite koliko novca trenutno imate. Ovo je vaša polazna tačka — aplikacija automatski oduzima troškove i dodaje prihode.</p>
+    <div class="field">
+      <label>Iznos (RSD)</label>
+      <input type="number" id="balInput" placeholder="npr. 150.000" inputmode="decimal" class="gf">
+    </div>
+    <button class="ms i" onclick="saveBalance()">Sačuvaj stanje</button>
+    <button class="mc" onclick="cm('balModal')">Otkaži</button>
+  </div>
+</div>
+
+<script>
+// ── CATEGORIES ───────────────────────────────────────────
+const ECATS_DEFAULT=[
+  {id:'namirnice',name:'Namirnice',icon:'🛒',custom:false},
+  {id:'gorivo',name:'Gorivo',icon:'⛽',custom:false},
+  {id:'putovanja',name:'Putovanja',icon:'✈️',custom:false},
+  {id:'izlasci',name:'Izlasci',icon:'🍽️',custom:false},
+  {id:'zdravlje',name:'Zdravlje',icon:'🏥',custom:false},
+  {id:'apoteka',name:'Apoteka',icon:'💊',custom:false},
+  {id:'garderoba',name:'Garderoba',icon:'👗',custom:false},
+  {id:'kirija',name:'Kirija',icon:'🏠',custom:false},
+  {id:'racuni',name:'Računi',icon:'📄',custom:false},
+  {id:'kredit',name:'Kredit',icon:'🏦',custom:false},
+];
+const ICATS_DEFAULT=[
+  {id:'plata',name:'Plata',icon:'💼',custom:false},
+  {id:'freelance',name:'Freelance',icon:'💻',custom:false},
+  {id:'bonus',name:'Bonus',icon:'🎯',custom:false},
+  {id:'pozajmica',name:'Pozajmica',icon:'🤝',custom:false},
+  {id:'rent_in',name:'Kirija',icon:'🏘️',custom:false},
+  {id:'ostalo_p',name:'Ostalo',icon:'💰',custom:false},
+];
+const CAT_COLORS=['#e05c6a','#f0924a','#e8c94a','#7dc96a','#5cb88a','#4ab8d8','#5a7ee8','#9b6ae0','#d868b8','#a0a8b8'];
+const COLOR_NAMES=['Crvena','Narandžasta','Žuta','Svetlo zelena','Zelena','Plava','Indigo','Ljubičasta','Roze','Siva'];
+const MONTHS=['Januar','Februar','Mart','April','Maj','Jun','Jul','Avgust','Septembar','Oktobar','Novembar','Decembar'];
+const GPALT=['#c9a84c','#e8c97a','#a07830','#f0d89a','#d4b060','#9a7030','#e0c080','#b89048','#d8bc72','#c0a040'];
+
+// ── STATE ────────────────────────────────────────────────
+let vYear=new Date().getFullYear(),vMonth=new Date().getMonth();
+let activeTab='pregled',eType='expense',selCat=null;
+let newCatType='expense',selColor=CAT_COLORS[0],manageType='expense';
+let pendingDeleteId=null,pendingDeleteCatId=null,pendingDeleteCatType=null;
+let addCatFromManage=false;
+
+// ── STORAGE ──────────────────────────────────────────────
+const LS={
+  entries:()=>{try{return JSON.parse(localStorage.getItem('nw2_entries')||'[]')}catch{return[]}},
+  saveEntries:d=>localStorage.setItem('nw2_entries',JSON.stringify(d)),
+  bal:()=>parseFloat(localStorage.getItem('nw2_bal')||'0'),
+  saveBal:v=>localStorage.setItem('nw2_bal',String(v)),
+  cc:t=>{try{return JSON.parse(localStorage.getItem('nw2_cc_'+t)||'[]')}catch{return[]}},
+  saveCC:(t,d)=>localStorage.setItem('nw2_cc_'+t,JSON.stringify(d)),
+};
+
+// ── HELPERS ──────────────────────────────────────────────
+const fmt=n=>new Intl.NumberFormat('sr-RS').format(Math.round(n));
+const getME=(y,m)=>LS.entries().filter(e=>e.year===y&&e.month===m);
+const getAllCats=t=>[...(t==='expense'?ECATS_DEFAULT:ICATS_DEFAULT),...LS.cc(t)];
+const findCat=id=>getAllCats('expense').find(c=>c.id===id)||getAllCats('income').find(c=>c.id===id)||null;
+const curBal=()=>{
+  const all=LS.entries();
+  const inc=all.filter(e=>e.type==='income').reduce((s,e)=>s+e.amount,0);
+  const exp=all.filter(e=>e.type==='expense').reduce((s,e)=>s+e.amount,0);
+  return LS.bal()+inc-exp;
+};
+const catIcon=cat=>{
+  if(!cat) return `<div class="ci">💰</div>`;
+  if(cat.custom&&cat.color) return `<div class="ci-dot" style="background:${cat.color};opacity:.85"></div>`;
+  return `<div class="ci">${cat.icon||'💰'}</div>`;
+};
+
+// ── NAV ──────────────────────────────────────────────────
+function changeMonth(d){
+  vMonth+=d;
+  if(vMonth>11){vMonth=0;vYear++}
+  if(vMonth<0){vMonth=11;vYear--}
+  render();
+}
+function switchTab(tab){
+  activeTab=tab;
+  ['pregled','grafikon','stavke'].forEach((t,i)=>{
+    document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
+    document.querySelectorAll('.tab')[i].classList.toggle('active',t===tab);
+  });
+  const data=getME(vYear,vMonth);
+  if(tab==='pregled')  renderPregled(data);
+  if(tab==='stavke')   renderStavke(data);
+  if(tab==='grafikon') renderCharts();
+}
+
+// ── RENDER ───────────────────────────────────────────────
+function render(){
+  document.getElementById('monthLabel').textContent=`${MONTHS[vMonth]} ${vYear}`;
+  renderBal();
+  const data=getME(vYear,vMonth);
+  if(activeTab==='pregled')  renderPregled(data);
+  if(activeTab==='stavke')   renderStavke(data);
+  if(activeTab==='grafikon') renderCharts();
+}
+
+function renderBal(){
+  const data=getME(vYear,vMonth);
+  const mInc=data.filter(e=>e.type==='income').reduce((s,e)=>s+e.amount,0);
+  const mExp=data.filter(e=>e.type==='expense').reduce((s,e)=>s+e.amount,0);
+  const bilans=mInc-mExp, cur=curBal();
+  const bc=bilans>=0?'var(--green)':'var(--red)';
+  document.getElementById('balGrid').innerHTML=`
+    <div class="bal-main" onclick="openBalModal()">
+      <div>
+        <div class="bl">💳 Trenutno raspoloživo</div>
+        <div class="bv big">${fmt(cur)} <span style="font-size:14px;font-weight:300;color:var(--text-muted)">RSD</span></div>
+        <div class="bsub">Početno: ${fmt(LS.bal())} RSD</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px">✏️ Uredi</div>
+        <div style="font-size:12px;color:var(--green)">+${fmt(mInc)}</div>
+        <div style="font-size:12px;color:var(--red)">−${fmt(mExp)}</div>
+      </div>
+    </div>
+    <div class="bal-small g">
+      <div class="bl gc">↑ Prihodi</div>
+      <div class="bv g">+${fmt(mInc)}</div>
+      <div class="bsub">${MONTHS[vMonth]}</div>
+    </div>
+    <div class="bal-small r">
+      <div class="bl rc">↓ Troškovi</div>
+      <div class="bv r">−${fmt(mExp)}</div>
+      <div class="bsub">${MONTHS[vMonth]}</div>
+    </div>
+    <div class="bal-small" style="background:${bilans>=0?'var(--green-dim)':'var(--red-dim)'};border-color:${bilans>=0?'rgba(92,184,138,.25)':'rgba(224,92,106,.25)'};grid-column:1/-1">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div class="bl" style="color:${bc}">= Mesečni bilans</div>
+          <div class="bv" style="font-size:22px;color:${bc}">${bilans>=0?'+':''}${fmt(bilans)} RSD</div>
+        </div>
+        <div style="font-size:26px">${bilans>=0?'🟢':'🔴'}</div>
+      </div>
+    </div>`;
+}
+
+function renderCatSection(cats,entries,type,title){
+  const total=entries.reduce((s,e)=>s+e.amount,0);
+  const grp={};cats.forEach(c=>{grp[c.id]={t:0,n:0}});
+  entries.forEach(e=>{if(grp[e.cat]!==undefined){grp[e.cat].t+=e.amount;grp[e.cat].n++}});
+  const sorted=cats.filter(c=>grp[c.id]&&grp[c.id].t>0).sort((a,b)=>grp[b.id].t-grp[a.id].t);
+  if(!sorted.length) return '';
+  const mx=Math.max(...sorted.map(c=>grp[c.id].t));
+  const isI=type==='income', color=isI?'var(--green)':'var(--red)', sign=isI?'+':'−';
+  let html=`<div class="sec">${title}</div>`;
+  sorted.forEach((c,i)=>{
+    const g=grp[c.id],pct=mx>0?(g.t/mx)*100:0,sh=total>0?Math.round(g.t/total*100):0;
+    const barColor=c.custom&&c.color?c.color:(isI?'var(--green)':'var(--gold)');
+    html+=`<div class="cat-row" style="animation-delay:${i*.05}s">
+      ${catIcon(c)}
+      <div class="ci-info">
+        <div class="cn">${c.name} <span style="color:var(--text-muted);font-size:11px">${sh}%</span></div>
+        <div class="cb-wrap"><div class="cb" style="width:${pct}%;background:${barColor}"></div></div>
+      </div>
+      <div><div class="ca" style="color:${color}">${sign}${fmt(g.t)}</div><div class="cc">${g.n} stavk${g.n===1?'a':g.n<5?'e':'i'}</div></div>
+    </div>`;
+  });
+  return html;
+}
+
+function renderPregled(data){
+  const exp=data.filter(e=>e.type==='expense'), inc=data.filter(e=>e.type==='income');
+  let html=renderCatSection(getAllCats('income'),inc,'income','💵 Prihodi — '+MONTHS[vMonth]);
+  const eh=renderCatSection(getAllCats('expense'),exp,'expense','💸 Troškovi — '+MONTHS[vMonth]);
+  html+=eh||`<div class="sec">💸 Troškovi — ${MONTHS[vMonth]}</div><div class="empty"><div class="empty-icon">🎉</div><p>Nema troškova ovog meseca!</p></div>`;
+  if(!exp.length&&!inc.length) html=`<div class="empty"><div class="empty-icon">💸</div><p>Nema unetih stavki.<br>Dodaj prihod ili trošak!</p></div>`;
+  document.getElementById('tab-pregled').innerHTML=html;
+}
+
+function renderStavke(data){
+  const el=document.getElementById('tab-stavke');
+  if(!data.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📝</div><p>Nema stavki ovog meseca.</p></div>`;return}
+  const sorted=[...data].sort((a,b)=>b.id-a.id);
+  el.innerHTML=`<div class="sec">Sve stavke</div>`+sorted.map(e=>{
+    const cat=findCat(e.cat), d=new Date(e.id), isI=e.type==='income';
+    const ds=`${d.getDate()}. ${MONTHS[d.getMonth()]} — ${cat?.name||e.cat}`;
+    return `<div class="tx-row">
+      ${catIcon(cat)}
+      <div class="tx-info">
+        <div class="tx-n" style="color:${isI?'var(--green)':'var(--text)'}">${e.desc||cat?.name||'Stavka'}</div>
+        <div class="tx-m">${ds}</div>
+      </div>
+      <div style="font-size:14px;font-weight:600;color:${isI?'var(--green)':'var(--red)'};flex-shrink:0;margin-right:4px">${isI?'+':'−'}${fmt(e.amount)}</div>
+      <button class="tx-del" onclick="delE(${e.id})">🗑️</button>
+    </div>`;
+  }).join('');
+}
+
+// ── CHARTS (Chart.js) ────────────────────────────────────
+let pieInst=null, barInst=null;
+
+function renderCharts(){
+  const data=getME(vYear,vMonth);
+  const expenses=data.filter(e=>e.type==='expense');
+  const allECats=getAllCats('expense');
+  const grp={};allECats.forEach(c=>{grp[c.id]=0});
+  expenses.forEach(e=>{if(grp[e.cat]!==undefined)grp[e.cat]+=e.amount});
+  const ef=allECats.filter(c=>grp[c.id]>0);
+
+  if(pieInst){pieInst.destroy();pieInst=null;}
+  const pieCanvas=document.getElementById('pieChart');
+  if(ef.length){
+    const colors=ef.map((c,i)=>c.custom&&c.color?c.color:GPALT[i%GPALT.length]);
+    pieInst=new Chart(pieCanvas.getContext('2d'),{
+      type:'doughnut',
+      data:{
+        labels:ef.map(c=>c.name),
+        datasets:[{data:ef.map(c=>grp[c.id]),backgroundColor:colors,borderColor:'#18181f',borderWidth:3,hoverOffset:10}]
+      },
+      options:{
+        responsive:true,cutout:'62%',
+        animation:{animateRotate:true,duration:800},
+        plugins:{
+          legend:{position:'bottom',labels:{color:'#b0adca',font:{family:'DM Sans',size:12},padding:14,boxWidth:12,borderRadius:4}},
+          tooltip:{callbacks:{label:ctx=>` ${fmt(ctx.raw)} RSD (${Math.round(ctx.parsed/ef.reduce((s,c)=>s+grp[c.id],0)*100)}%)`}}
+        }
+      }
+    });
+  } else {
+    pieCanvas.getContext('2d').clearRect(0,0,pieCanvas.width,pieCanvas.height);
+  }
+
+  const labs=[],incA=[],expA=[];
+  for(let i=5;i>=0;i--){
+    let m=vMonth-i,y=vYear;
+    while(m<0){m+=12;y--}
+    labs.push(MONTHS[m].slice(0,3));
+    const md=getME(y,m);
+    incA.push(md.filter(e=>e.type==='income').reduce((s,e)=>s+e.amount,0));
+    expA.push(md.filter(e=>e.type==='expense').reduce((s,e)=>s+e.amount,0));
+  }
+  if(barInst){barInst.destroy();barInst=null;}
+  barInst=new Chart(document.getElementById('barChart').getContext('2d'),{
+    type:'bar',
+    data:{
+      labels:labs,
+      datasets:[
+        {label:'Prihodi',data:incA,backgroundColor:'rgba(92,184,138,.75)',borderRadius:8,borderSkipped:false,hoverBackgroundColor:'rgba(92,184,138,1)'},
+        {label:'Troškovi',data:expA,backgroundColor:'rgba(201,168,76,.75)',borderRadius:8,borderSkipped:false,hoverBackgroundColor:'rgba(201,168,76,1)'}
+      ]
+    },
+    options:{
+      responsive:true,
+      animation:{duration:700},
+      plugins:{
+        legend:{labels:{color:'#b0adca',font:{family:'DM Sans',size:12},boxWidth:12,borderRadius:4,padding:16}},
+        tooltip:{callbacks:{label:ctx=>` ${fmt(ctx.raw)} RSD`}}
+      },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#7a7890',font:{family:'DM Sans'}}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#7a7890',font:{family:'DM Sans'},callback:v=>v>=1000?Math.round(v/1000)+'k':v}}
+      }
+    }
+  });
+}
+
+// ── ENTRY MODAL ──────────────────────────────────────────
+function openModal(){
+  selCat=null;
+  document.getElementById('iAmt').value='';
+  document.getElementById('iDesc').value='';
+  setType('expense');
+  document.getElementById('entryModal').classList.add('open');
+  setTimeout(()=>document.getElementById('iAmt').focus(),400);
+}
+function setType(t){
+  eType=t;selCat=null;
+  const isE=t==='expense';
+  document.getElementById('tt-e').className='ttb'+(isE?' ae':'');
+  document.getElementById('tt-i').className='ttb'+(isE?'':' ai');
+  document.getElementById('saveBtn').className='ms '+(isE?'e':'i');
+  document.getElementById('saveBtn').textContent=isE?'Sačuvaj trošak':'Sačuvaj prihod';
+  document.getElementById('iDesc').placeholder=isE?'npr. Lidl, Benzinska...':'npr. Plata za jun...';
+  buildCatGrid();
+}
+function buildCatGrid(){
+  const cats=getAllCats(eType), sc=eType==='expense'?'se':'si';
+  let html=cats.map(c=>{
+    const dot=c.custom&&c.color?`<span class="cdot" style="background:${c.color}"></span>`:`<span style="font-size:16px">${c.icon}</span>`;
+    return `<button class="cb-btn${selCat===c.id?' '+sc:''}" id="cb-${c.id}" onclick="sCat('${c.id}')">${dot}${c.name}</button>`;
+  }).join('');
+  html+=`<button class="cb-btn add-cat" onclick="openAddCat()">＋ Nova kategorija</button>`;
+  document.getElementById('catGrid').innerHTML=html;
+}
+function sCat(id){
+  selCat=id;
+  const sc=eType==='expense'?'se':'si';
+  document.querySelectorAll('.cb-btn').forEach(b=>b.classList.remove('se','si'));
+  document.getElementById('cb-'+id)?.classList.add(sc);
+}
+function saveEntry(){
+  const amt=parseFloat(document.getElementById('iAmt').value), ai=document.getElementById('iAmt');
+  if(!amt||amt<=0){ai.style.borderColor='var(--red)';ai.focus();setTimeout(()=>ai.style.borderColor='',1500);return}
+  if(!selCat){
+    document.querySelectorAll('.cb-btn').forEach(b=>{if(!b.classList.contains('add-cat'))b.style.borderColor='var(--red)'});
+    setTimeout(()=>document.querySelectorAll('.cb-btn').forEach(b=>b.style.borderColor=''),1500);return;
+  }
+  const desc=document.getElementById('iDesc').value.trim(), now=new Date();
+  const entries=LS.entries();
+  entries.push({id:Date.now(),year:now.getFullYear(),month:now.getMonth(),type:eType,cat:selCat,amount:amt,desc});
+  LS.saveEntries(entries);
+  vYear=now.getFullYear();vMonth=now.getMonth();
+  cm('entryModal');render();
+}
+
+// ── DELETE ENTRY ─────────────────────────────────────────
+function delE(id){
+  const entry=LS.entries().find(e=>e.id===id);
+  if(!entry)return;
+  const cat=findCat(entry.cat), isI=entry.type==='income';
+  document.getElementById('confirmText').innerHTML=
+    `<span style="color:${isI?'var(--green)':'var(--red)'}">${isI?'+':'−'}${fmt(entry.amount)} RSD</span><br>${entry.desc||cat?.name||'Stavka'}<br><br>Ovo će se odmah odraziti na stanje računa.`;
+  pendingDeleteId=id;
+  document.getElementById('confirmModal').classList.add('open');
+}
+function confirmDelete(){
+  if(pendingDeleteId===null)return;
+  LS.saveEntries(LS.entries().filter(e=>e.id!==pendingDeleteId));
+  pendingDeleteId=null;
+  cm('confirmModal');render();
+}
+
+// ── CUSTOM CATEGORIES ────────────────────────────────────
+function buildColorGrid(sel){
+  document.getElementById('colorGrid').innerHTML=CAT_COLORS.map((c,i)=>
+    `<div class="color-swatch${sel===c?' picked':''}" style="background:${c}" title="${COLOR_NAMES[i]}" onclick="pickColor('${c}')"></div>`
+  ).join('');
+}
+function pickColor(c){selColor=c;buildColorGrid(c)}
+function openAddCat(){
+  addCatFromManage=false;newCatType=eType;selColor=CAT_COLORS[0];
+  document.getElementById('newCatName').value='';
+  setNewCatType(eType);buildColorGrid(selColor);
+  cm('entryModal');document.getElementById('addCatModal').classList.add('open');
+  setTimeout(()=>document.getElementById('newCatName').focus(),400);
+}
+function openAddCatFromManage(){
+  addCatFromManage=true;newCatType=manageType;selColor=CAT_COLORS[0];
+  document.getElementById('newCatName').value='';
+  setNewCatType(manageType);buildColorGrid(selColor);
+  cm('manageCatsModal');document.getElementById('addCatModal').classList.add('open');
+  setTimeout(()=>document.getElementById('newCatName').focus(),400);
+}
+function setNewCatType(t){
+  newCatType=t;const isE=t==='expense';
+  document.getElementById('nct-e').className='ttb'+(isE?' ae':'');
+  document.getElementById('nct-i').className='ttb'+(isE?'':' ai');
+  document.getElementById('saveCatBtn').className='ms '+(isE?'e':'i');
+}
+function saveNewCat(){
+  const name=document.getElementById('newCatName').value.trim(), ni=document.getElementById('newCatName');
+  if(!name){ni.style.borderColor='var(--red)';ni.focus();setTimeout(()=>ni.style.borderColor='',1500);return}
+  const custom=LS.cc(newCatType), id='c_'+Date.now();
+  custom.push({id,name,color:selColor,custom:true});
+  LS.saveCC(newCatType,custom);
+  cm('addCatModal');showToast('✅ Kategorija "'+name+'" dodana');
+  if(addCatFromManage){eType=newCatType;openManageCats()}
+  else{
+    eType=newCatType;selCat=id;
+    document.getElementById('entryModal').classList.add('open');
+    buildCatGrid();
+    setTimeout(()=>{
+      const sc=eType==='expense'?'se':'si';
+      document.querySelectorAll('.cb-btn').forEach(b=>b.classList.remove('se','si'));
+      document.getElementById('cb-'+id)?.classList.add(sc);
+    },50);
+  }
+}
+function backToEntry(){cm('addCatModal');document.getElementById('entryModal').classList.add('open')}
+
+// ── MANAGE CATS ──────────────────────────────────────────
+function openManageCats(){
+  cm('entryModal');manageType=eType;setManageType(manageType);
+  document.getElementById('manageCatsModal').classList.add('open');
+}
+function setManageType(t){
+  manageType=t;const isE=t==='expense';
+  document.getElementById('mgt-e').className='ttb'+(isE?' ae':'');
+  document.getElementById('mgt-i').className='ttb'+(isE?'':' ai');
+  document.getElementById('addNewFromManage').className='ms '+(isE?'e':'i');
+  renderManageCatsList();
+}
+function renderManageCatsList(){
+  const defaults=manageType==='expense'?ECATS_DEFAULT:ICATS_DEFAULT;
+  const custom=LS.cc(manageType), entries=LS.entries();
+  let html='';
+  if(custom.length){
+    html+=`<div style="font-size:10px;text-transform:uppercase;letter-spacing:1.3px;color:var(--text-muted);margin-bottom:8px">Tvoje kategorije</div>`;
+    custom.forEach(c=>{
+      const cnt=entries.filter(e=>e.cat===c.id).length;
+      html+=`<div class="mcat-row">
+        <div class="mcat-dot" style="background:${c.color}"></div>
+        <div class="mcat-name">${c.name}</div>
+        ${cnt>0?`<span class="mcat-badge">${cnt} stavki</span>`:''}
+        <button class="mcat-del" onclick="promptDeleteCat('${c.id}','${manageType}')">🗑️</button>
+      </div>`;
+    });
+  }
+  html+=`<div style="font-size:10px;text-transform:uppercase;letter-spacing:1.3px;color:var(--text-muted);margin:${custom.length?'16px':0} 0 8px">Podrazumevane kategorije</div>`;
+  defaults.forEach(c=>{
+    const cnt=entries.filter(e=>e.cat===c.id).length;
+    html+=`<div class="mcat-row">
+      <div class="mcat-dot" style="background:var(--surface2)">${c.icon}</div>
+      <div class="mcat-name">${c.name}</div>
+      ${cnt>0?`<span class="mcat-badge">${cnt} stavki</span>`:''}
+      <span style="font-size:11px;color:var(--text-muted);padding:0 4px">🔒</span>
+    </div>`;
+  });
+  document.getElementById('manageCatsList').innerHTML=html;
+}
+function promptDeleteCat(id,type){
+  const cat=LS.cc(type).find(c=>c.id===id);if(!cat)return;
+  const cnt=LS.entries().filter(e=>e.cat===id).length;
+  document.getElementById('confirmCatText').innerHTML=
+    `<span style="color:${cat.color};font-weight:600">${cat.name}</span><br><br>`+
+    (cnt>0?`⚠️ Ova kategorija ima <b>${cnt}</b> stavki. Stavke <b>neće</b> biti obrisane.`:'Kategorija nema stavki.');
+  pendingDeleteCatId=id;pendingDeleteCatType=type;
+  document.getElementById('confirmCatModal').classList.add('open');
+}
+function confirmDeleteCat(){
+  if(!pendingDeleteCatId)return;
+  LS.saveCC(pendingDeleteCatType,LS.cc(pendingDeleteCatType).filter(c=>c.id!==pendingDeleteCatId));
+  pendingDeleteCatId=null;cm('confirmCatModal');
+  showToast('🗑️ Kategorija obrisana');renderManageCatsList();render();
+}
+
+// ── BALANCE ──────────────────────────────────────────────
+function openBalModal(){
+  document.getElementById('balInput').value=LS.bal()||'';
+  document.getElementById('balModal').classList.add('open');
+  setTimeout(()=>document.getElementById('balInput').focus(),400);
+}
+function saveBalance(){
+  const v=parseFloat(document.getElementById('balInput').value), bi=document.getElementById('balInput');
+  if(isNaN(v)||v<0){bi.style.borderColor='var(--red)';bi.focus();setTimeout(()=>bi.style.borderColor='',1500);return}
+  LS.saveBal(v);cm('balModal');render();
+}
+
+// ── UTILS ────────────────────────────────────────────────
+function cm(id){document.getElementById(id).classList.remove('open')}
+function coo(e,id){if(e.target.id===id)cm(id)}
+function showToast(msg){
+  const t=document.createElement('div');
+  t.textContent=msg;
+  t.style.cssText='position:fixed;bottom:calc(env(safe-area-inset-bottom,0px)+110px);left:50%;transform:translateX(-50%) translateY(0);background:#2a2a38;color:#f0ede8;font-family:-apple-system,sans-serif;font-size:13px;padding:10px 20px;border-radius:20px;z-index:9999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5);opacity:0;transition:opacity .3s,transform .3s';
+  document.body.appendChild(t);
+  requestAnimationFrame(()=>{t.style.opacity='1';t.style.transform='translateX(-50%) translateY(-4px)'});
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),400)},3000);
+}
+
+// ── PERSISTENT STORAGE ───────────────────────────────────
+async function requestPersist(){
+  if(!navigator.storage?.persist)return;
+  const already=await navigator.storage.persisted();
+  if(already){showToast('🔒 Podaci su zaštićeni od brisanja');return}
+  const granted=await navigator.storage.persist();
+  if(granted)showToast('🔒 Podaci su zaštićeni od brisanja');
+  else showToast('⚠️ Dozvola nije data — napravite backup');
+}
+
+// ── INIT ─────────────────────────────────────────────────
+render();
+requestPersist();
+</script>
+</body>
+</html>
